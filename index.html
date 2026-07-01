@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>세계의 문화권 · 지도 찾기 퀴즈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-navy:#1B2A4A;
+    --sand:#F3E9D2;
+    --terracotta:#C1652F;
+    --sage:#5E7A55;
+    --brick:#8B3A3A;
+    --gold:#C9A227;
+    --ocean:#22385f;
+    --land-grey:#7c8ba3;
+    --paper-line: rgba(27,42,74,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(201,162,39,0.10), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(94,122,85,0.12), transparent 45%),
+      var(--ink-navy);
+    font-family:'Noto Sans KR', sans-serif;
+    color:var(--ink-navy);
+    display:flex; justify-content:center;
+    padding:36px 16px 80px;
+  }
+  .stage{ width:100%; max-width:700px; }
+
+  .masthead{ text-align:center; color:var(--sand); margin-bottom:18px; }
+  .masthead .eyebrow{
+    font-family:'Space Mono', monospace; font-size:12px; letter-spacing:.28em;
+    color:var(--gold); text-transform:uppercase;
+  }
+  .masthead h1{
+    font-family:'Noto Serif KR', serif; font-weight:900;
+    font-size:clamp(26px,5.6vw,36px); margin:8px 0 6px; letter-spacing:-.01em;
+  }
+  .masthead p{ margin:0; font-size:13.5px; color:rgba(243,233,210,0.72); }
+
+  /* ---------- Map ---------- */
+  .map-card{
+    background:var(--ocean);
+    border-radius:14px;
+    padding:16px 16px 10px;
+    margin-bottom:18px;
+    box-shadow:0 20px 40px -18px rgba(0,0,0,0.5);
+    position:relative;
+  }
+  .map-card svg{ width:100%; height:auto; display:block; }
+  .map-legend{
+    display:flex; flex-wrap:wrap; gap:8px 16px;
+    padding:10px 4px 4px;
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    color:rgba(243,233,210,0.85);
+  }
+  .map-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .region-label{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:15px;
+    fill:var(--ink-navy);
+  }
+  .region-marker{ transition:opacity .3s ease, filter .3s ease; }
+  .region-marker.dim{ opacity:.35; }
+  .region-marker.hint{ filter:drop-shadow(0 0 6px rgba(201,162,39,0.9)); }
+
+  /* ---------- Passport / quiz card ---------- */
+  .passport{
+    background:var(--sand);
+    border-radius:6px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.04);
+    padding:30px 28px 28px;
+    position:relative;
+    overflow:hidden;
+  }
+  .passport::before{
+    content:"";
+    position:absolute;inset:0;
+    background-image:repeating-linear-gradient(0deg, var(--paper-line) 0 1px, transparent 1px 32px);
+    pointer-events:none; opacity:.5;
+  }
+
+  .progress-row{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:20px; position:relative;
+  }
+  .q-counter{
+    font-family:'Space Mono', monospace; font-size:13px;
+    color:var(--terracotta); letter-spacing:.04em;
+  }
+  .stamps{ display:flex; gap:6px; }
+  .stamp-dot{
+    width:9px; height:9px; border-radius:50%;
+    border:1.5px solid var(--ink-navy); opacity:.25; transition:all .3s ease;
+  }
+  .stamp-dot.done{ opacity:1; background:var(--sage); border-color:var(--sage); }
+  .stamp-dot.wrong{ background:var(--brick); border-color:var(--brick); }
+
+  .region-tag{
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--terracotta); margin-bottom:10px; display:block;
+  }
+  .question-text{
+    font-family:'Noto Serif KR', serif; font-weight:700;
+    font-size:clamp(17px,3vw,20px); line-height:1.55;
+    margin:0 0 22px; position:relative; z-index:1;
+  }
+
+  .options{ display:flex; flex-direction:column; gap:10px; position:relative; z-index:1; }
+  .option{
+    display:flex; align-items:flex-start; gap:12px; text-align:left; width:100%;
+    padding:13px 16px; background:#fff; border:1.5px solid rgba(27,42,74,0.15);
+    border-radius:10px; cursor:pointer; font-family:'Noto Sans KR', sans-serif;
+    font-size:14.5px; line-height:1.5; color:var(--ink-navy);
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .option:hover:not(:disabled){ border-color:var(--terracotta); transform:translateY(-1px); }
+  .option:disabled{ cursor:default; }
+  .option .letter{
+    flex:0 0 auto; width:26px; height:26px; border-radius:50%;
+    border:1.5px solid rgba(27,42,74,0.3); display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono', monospace; font-size:13px; font-weight:700;
+  }
+  .option.correct{ background:rgba(94,122,85,0.12); border-color:var(--sage); }
+  .option.correct .letter{ background:var(--sage); border-color:var(--sage); color:#fff; }
+  .option.wrong{ background:rgba(139,58,58,0.10); border-color:var(--brick); }
+  .option.wrong .letter{ background:var(--brick); border-color:var(--brick); color:#fff; }
+
+  .explain{
+    margin-top:18px; padding:16px 18px; background:var(--ink-navy); color:var(--sand);
+    border-radius:10px; font-size:13.5px; line-height:1.65; position:relative; z-index:1; display:none;
+  }
+  .explain.show{ display:block; animation:fadeUp .35s ease; }
+  .explain b{ color:var(--gold); }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .next-btn{
+    margin-top:20px; width:100%; padding:14px; border:none; border-radius:10px;
+    background:var(--terracotta); color:#fff; font-family:'Noto Sans KR', sans-serif;
+    font-weight:700; font-size:15px; cursor:pointer; display:none; position:relative; z-index:1;
+    transition:background .15s ease;
+  }
+  .next-btn.show{ display:block; }
+  .next-btn:hover{ background:#a8551f; }
+
+  .result{ display:none; text-align:center; position:relative; z-index:1; }
+  .result.show{ display:block; }
+  .result .score-big{
+    font-family:'Noto Serif KR', serif; font-weight:900; font-size:52px;
+    color:var(--ink-navy); margin:6px 0 0;
+  }
+  .result .score-label{
+    font-family:'Space Mono', monospace; font-size:12px; letter-spacing:.2em;
+    color:var(--terracotta); text-transform:uppercase;
+  }
+  .result .score-msg{ font-size:14.5px; color:rgba(27,42,74,0.75); margin:14px 0 26px; line-height:1.6; }
+  .stamp-board{ display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:26px; }
+  .stamp{
+    width:84px; height:84px; border-radius:50%; border:3px solid; display:flex;
+    align-items:center; justify-content:center; flex-direction:column;
+    font-family:'Noto Serif KR', serif; font-weight:700; font-size:11.5px; text-align:center;
+    transform:rotate(var(--rot)); line-height:1.3; padding:6px;
+  }
+  .stamp.pass{ border-color:var(--sage); color:var(--sage); }
+  .stamp.fail{ border-color:var(--brick); color:var(--brick); opacity:.55; }
+  .stamp span.mark{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:.1em; margin-top:2px; }
+
+  .restart-btn{
+    padding:12px 26px; background:none; border:1.5px solid var(--ink-navy); border-radius:30px;
+    color:var(--ink-navy); font-family:'Noto Sans KR', sans-serif; font-weight:700; font-size:14px;
+    cursor:pointer; transition:all .15s ease;
+  }
+  .restart-btn:hover{ background:var(--ink-navy); color:var(--sand); }
+
+  footer{
+    text-align:center; color:rgba(243,233,210,0.45); font-size:12px; margin-top:24px;
+    font-family:'Space Mono', monospace; letter-spacing:.05em;
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="masthead">
+    <div class="eyebrow">통합사회 Ⅳ-1 · 다양한 문화권의 특징과 삶의 방식</div>
+    <h1>세계 문화권 지도 찾기</h1>
+    <p>특징을 읽고, 지도에서 해당하는 문화권 위치를 골라보세요</p>
+  </div>
+
+  <div class="map-card">
+    <svg id="worldMap" viewBox="0 0 1000 480" xmlns="http://www.w3.org/2000/svg">
+      <!-- graticule background -->
+      <g stroke="rgba(243,233,210,0.06)" stroke-width="1">
+        <line x1="0" y1="120" x2="1000" y2="120"/>
+        <line x1="0" y1="240" x2="1000" y2="240"/>
+        <line x1="0" y1="360" x2="1000" y2="360"/>
+        <line x1="200" y1="0" x2="200" y2="480"/>
+        <line x1="400" y1="0" x2="400" y2="480"/>
+        <line x1="600" y1="0" x2="600" y2="480"/>
+        <line x1="800" y1="0" x2="800" y2="480"/>
+      </g>
+
+      <!-- unlabeled context landmasses (grey silhouettes, for orientation only) -->
+      <g fill="var(--land-grey)" opacity="0.4">
+        <!-- North America -->
+        <path d="M83,79 L160,50 L222,47 L264,79 L295,141 L278,190 L236,177 L205,196 L250,209 L278,241 L230,225 L188,196 L153,114 L100,110 Z"/>
+        <!-- South America -->
+        <path d="M295,255 L340,270 L380,300 L385,343 L360,390 L338,380 L330,430 L305,400 L295,340 L270,300 Z"/>
+        <!-- Northern/Central Asia (Russia band) -->
+        <path d="M600,60 L825,55 L825,127 L686,127 L611,127 L600,95 Z"/>
+        <!-- South Asia / India peninsula -->
+        <path d="M660,158 L715,158 L730,179 L713,244 L690,210 L660,190 Z"/>
+        <!-- Southeast Asia mainland -->
+        <path d="M778,200 L800,205 L805,230 L790,245 L770,235 L765,215 Z"/>
+        <!-- Indonesia / Philippines islands -->
+        <circle cx="800" cy="280" r="7"/>
+        <circle cx="822" cy="262" r="8"/>
+        <circle cx="847" cy="277" r="10"/>
+        <circle cx="861" cy="226" r="6"/>
+      </g>
+
+      <!-- REGION A: 유럽 문화권 -->
+      <g class="region-marker" data-region="A">
+        <path d="M542,47 L569,60 L569,95 L597,95 L597,120 L569,127 L564,149 L544,149 L528,130 L506,120 L483,155 L475,142 L470,120 L490,95 L510,70 Z" fill="var(--terracotta)"/>
+        <path d="M494,100 L503,98 L508,108 L505,120 L496,122 L490,112 Z" fill="var(--terracotta)"/>
+        <circle cx="513" cy="107" r="18" fill="var(--sand)" stroke="var(--ink-navy)" stroke-width="2"/>
+        <text x="513" y="113" text-anchor="middle" class="region-label">A</text>
+      </g>
+
+      <!-- REGION B: 건조 문화권 (북부 아프리카·서남아시아·중앙아시아) -->
+      <g class="region-marker" data-region="B">
+        <path d="M475,174 L483,158 L528,158 L611,127 L686,127 L658,158 L642,174 L661,196 L636,222 L597,222 L592,180 L458,222 L458,196 Z" fill="var(--gold)"/>
+        <circle cx="560" cy="185" r="18" fill="var(--sand)" stroke="var(--ink-navy)" stroke-width="2"/>
+        <text x="560" y="191" text-anchor="middle" class="region-label">B</text>
+      </g>
+
+      <!-- REGION C: 아프리카 문화권 (사하라 이남) -->
+      <g class="region-marker" data-region="C">
+        <path d="M458,222 L597,222 L611,245 L639,237 L611,305 L592,333 L550,373 L533,308 L528,278 L472,250 Z" fill="var(--sage)"/>
+        <path d="M615,315 L625,312 L631,330 L626,345 L616,340 Z" fill="var(--sage)"/>
+        <circle cx="518" cy="292" r="18" fill="var(--sand)" stroke="var(--ink-navy)" stroke-width="2"/>
+        <text x="518" y="298" text-anchor="middle" class="region-label">C</text>
+      </g>
+
+      <!-- REGION D: 동아시아 문화권 -->
+      <g class="region-marker" data-region="D">
+        <path d="M825,127 L856,132 L865,142 L860,158 L850,152 L836,171 L814,200 L778,200 L778,127 Z" fill="#2E4C7A"/>
+        <path d="M885,140 L895,145 L900,158 L892,168 L880,162 L878,150 Z" fill="#2E4C7A"/>
+        <circle cx="808" cy="158" r="18" fill="var(--sand)" stroke="var(--ink-navy)" stroke-width="2"/>
+        <text x="808" y="164" text-anchor="middle" class="region-label">D</text>
+      </g>
+
+      <!-- REGION E: 오세아니아 문화권 -->
+      <g class="region-marker" data-region="E">
+        <path d="M845,316 L867,308 L895,305 L925,350 L920,372 L903,385 L861,369 L822,366 L825,328 Z" fill="#8B5FA8"/>
+        <path d="M955,378 L963,375 L968,385 L962,392 L954,388 Z" fill="#8B5FA8"/>
+        <path d="M950,395 L958,392 L963,402 L955,408 L948,402 Z" fill="#8B5FA8"/>
+        <circle cx="875" cy="345" r="18" fill="var(--sand)" stroke="var(--ink-navy)" stroke-width="2"/>
+        <text x="875" y="351" text-anchor="middle" class="region-label">E</text>
+      </g>
+    </svg>
+
+    <div class="map-legend">
+      <span><i class="legend-dot" style="background:var(--terracotta)"></i>A 유럽</span>
+      <span><i class="legend-dot" style="background:var(--gold)"></i>B 건조 문화권</span>
+      <span><i class="legend-dot" style="background:var(--sage)"></i>C 아프리카</span>
+      <span><i class="legend-dot" style="background:#2E4C7A"></i>D 동아시아</span>
+      <span><i class="legend-dot" style="background:#8B5FA8"></i>E 오세아니아</span>
+    </div>
+  </div>
+
+  <div class="passport">
+
+    <div id="quizArea">
+      <div class="progress-row">
+        <span class="q-counter" id="qCounter">Q1 / 5</span>
+        <div class="stamps" id="stampsRow"></div>
+      </div>
+
+      <span class="region-tag" id="regionTag"></span>
+      <p class="question-text" id="questionText"></p>
+      <div class="options" id="optionsArea"></div>
+
+      <div class="explain" id="explainBox"></div>
+      <button class="next-btn" id="nextBtn">다음 문항으로 →</button>
+    </div>
+
+    <div class="result" id="resultArea">
+      <div class="score-label">Final Score</div>
+      <p class="score-big" id="scoreBig">0 / 5</p>
+      <p class="score-msg" id="scoreMsg"></p>
+      <div class="stamp-board" id="stampBoard"></div>
+      <button class="restart-btn" id="restartBtn">다시 풀어보기</button>
+    </div>
+
+  </div>
+
+  <footer>SOCIAL STUDIES · MAP-BASED CULTURAL REGIONS</footer>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    region: "지도 찾기 1",
+    text: "다음 특징에 해당하는 문화권을 지도에서 찾아 고르시오.\n\n크리스트교(가톨릭·개신교·정교회)가 생활양식 전반에 큰 영향을 주며, 산업 혁명의 발상지와 고대 유럽 문명의 발상지가 함께 자리한다.",
+    options: [
+      { label: "A", text: "유럽 문화권" },
+      { label: "B", text: "건조 문화권" },
+      { label: "D", text: "동아시아 문화권" },
+      { label: "E", text: "오세아니아 문화권" }
+    ],
+    answer: 0,
+    highlight: "A",
+    explain: "<b>A(유럽 문화권)</b>은 크리스트교를 공통 기반으로 하며, 북서 유럽은 산업 혁명의 발상지, 남부 유럽은 고대 유럽 문명의 발상지입니다. 지역별로 가톨릭·개신교·정교회 비율이 다르게 나타나요."
+  },
+  {
+    region: "지도 찾기 2",
+    text: "다음 특징에 해당하는 문화권을 지도에서 찾아 고르시오.\n\n북부 아프리카, 서남아시아, 중앙아시아에 걸쳐 있으며 대부분 이슬람교를 믿는다. 전통적으로 유목과 오아시스 농업에 종사했고, 할랄 음식 문화가 나타난다.",
+    options: [
+      { label: "B", text: "건조 문화권" },
+      { label: "C", text: "아프리카 문화권" },
+      { label: "D", text: "동아시아 문화권" },
+      { label: "A", text: "유럽 문화권" }
+    ],
+    answer: 0,
+    highlight: "B",
+    explain: "<b>B(건조 문화권)</b>는 넓은 사막과 초원이 펼쳐진 지역으로, 대부분 이슬람교를 믿어 돼지고기와 술을 금기시하고 할랄 음식만 섭취합니다. 최근에는 관개 농업이나 도시 정착도 늘고 있어요."
+  },
+  {
+    region: "지도 찾기 3",
+    text: "다음 특징에 해당하는 문화권을 지도에서 찾아 고르시오.\n\n부족 단위의 공동체 문화가 발달해 언어와 종교가 매우 다양하다. 유럽 식민 지배 과정에서 국경이 부족 경계와 어긋나게 그어져 분쟁이 잦고, 플랜테이션 중심의 작물 재배로 식량 부족 문제가 나타나기도 한다.",
+    options: [
+      { label: "C", text: "아프리카 문화권" },
+      { label: "B", text: "건조 문화권" },
+      { label: "E", text: "오세아니아 문화권" },
+      { label: "D", text: "동아시아 문화권" }
+    ],
+    answer: 0,
+    highlight: "C",
+    explain: "<b>C(아프리카 문화권, 사하라 사막 이남)</b>는 토속 신앙 비율이 높고 부족 단위 공동체 문화가 발달했습니다. 유럽 식민 지배로 국경과 부족 경계가 불일치해 분쟁이 잦고, 플랜테이션 중심 구조로 식량 부족 문제가 발생하기도 해요."
+  },
+  {
+    region: "지도 찾기 4",
+    text: "다음 특징에 해당하는 문화권을 지도에서 찾아 고르시오.\n\n계절풍의 영향으로 고온다습하여 벼농사가 발달했다. 유교와 불교 문화가 널리 퍼져 있으며, 젓가락과 한자를 사용하는 생활 문화가 나타난다.",
+    options: [
+      { label: "D", text: "동아시아 문화권" },
+      { label: "A", text: "유럽 문화권" },
+      { label: "C", text: "아프리카 문화권" },
+      { label: "B", text: "건조 문화권" }
+    ],
+    answer: 0,
+    highlight: "D",
+    explain: "<b>D(동아시아 문화권)</b>에 속하는 한국·중국·일본 등은 계절풍의 영향을 받아 벼농사가 발달했고, 유교와 불교 문화, 한자와 젓가락 사용이라는 공통점을 지닙니다."
+  },
+  {
+    region: "지도 찾기 5",
+    text: "다음 특징에 해당하는 문화권을 지도에서 찾아 고르시오.\n\n영국을 중심으로 한 유럽 문화가 전파되어 개신교와 영어 사용 비율이 높다. 독특한 자연경관을 바탕으로 관광 산업과 기업적 농목업이 발달했으며, 애버리지니·마오리족 등 원주민 문화는 소멸 위기에 놓여 있다.",
+    options: [
+      { label: "E", text: "오세아니아 문화권" },
+      { label: "D", text: "동아시아 문화권" },
+      { label: "A", text: "유럽 문화권" },
+      { label: "C", text: "아프리카 문화권" }
+    ],
+    answer: 0,
+    highlight: "E",
+    explain: "<b>E(오세아니아 문화권)</b>는 개발이 비교적 늦어 청정한 자연환경이 보존되어 있고, 영국의 식민 지배로 개신교와 영어 사용 비율이 높습니다. 애버리지니(오스트레일리아), 마오리족(뉴질랜드) 등 원주민 문화는 소멸 위기에 처해 있어요."
+  }
+];
+
+let current = 0;
+let score = 0;
+let results = [];
+let locked = false;
+
+const qCounter = document.getElementById('qCounter');
+const stampsRow = document.getElementById('stampsRow');
+const regionTag = document.getElementById('regionTag');
+const questionText = document.getElementById('questionText');
+const optionsArea = document.getElementById('optionsArea');
+const explainBox = document.getElementById('explainBox');
+const nextBtn = document.getElementById('nextBtn');
+const quizArea = document.getElementById('quizArea');
+const resultArea = document.getElementById('resultArea');
+
+function initStampsRow(){
+  stampsRow.innerHTML = '';
+  QUESTIONS.forEach(() => {
+    const d = document.createElement('div');
+    d.className = 'stamp-dot';
+    stampsRow.appendChild(d);
+  });
+}
+
+function setMapHint(letter){
+  document.querySelectorAll('.region-marker').forEach(g => {
+    g.classList.remove('hint', 'dim');
+    if(letter){
+      if(g.dataset.region === letter) g.classList.add('hint');
+      else g.classList.add('dim');
+    }
+  });
+}
+
+function renderQuestion(){
+  locked = false;
+  const q = QUESTIONS[current];
+  qCounter.textContent = `Q${current+1} / ${QUESTIONS.length}`;
+  regionTag.textContent = q.region;
+  questionText.textContent = q.text;
+  explainBox.classList.remove('show');
+  explainBox.innerHTML = '';
+  nextBtn.classList.remove('show');
+  nextBtn.textContent = current === QUESTIONS.length - 1 ? '결과 확인하기 →' : '다음 문항으로 →';
+  setMapHint(null);
+
+  optionsArea.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="letter">${opt.label}</span><span>${opt.text}</span>`;
+    btn.addEventListener('click', () => selectOption(i));
+    optionsArea.appendChild(btn);
+  });
+}
+
+function selectOption(i){
+  if(locked) return;
+  locked = true;
+  const q = QUESTIONS[current];
+  const correct = i === q.answer;
+  results[current] = correct;
+  if(correct) score++;
+
+  const buttons = optionsArea.querySelectorAll('.option');
+  buttons.forEach((b, idx) => {
+    b.disabled = true;
+    if(idx === q.answer) b.classList.add('correct');
+    if(idx === i && !correct) b.classList.add('wrong');
+  });
+
+  const dots = stampsRow.querySelectorAll('.stamp-dot');
+  dots[current].classList.add('done');
+  if(!correct) dots[current].classList.add('wrong');
+
+  setMapHint(q.highlight);
+
+  explainBox.innerHTML = `<b>${correct ? '정답입니다' : '오답입니다'}.</b><br>${q.explain}`;
+  explainBox.classList.add('show');
+  nextBtn.classList.add('show');
+}
+
+nextBtn.addEventListener('click', () => {
+  current++;
+  if(current < QUESTIONS.length){
+    renderQuestion();
+  } else {
+    showResult();
+  }
+});
+
+function showResult(){
+  quizArea.style.display = 'none';
+  resultArea.classList.add('show');
+  setMapHint(null);
+
+  document.getElementById('scoreBig').textContent = `${score} / ${QUESTIONS.length}`;
+  let msg = '';
+  if(score === 5) msg = '완벽해요! 다섯 문화권의 위치와 특징을 모두 정확히 찾았어요.';
+  else if(score >= 3) msg = '좋아요! 지도와 설명을 다시 살펴보고 부족한 부분을 채워보세요.';
+  else msg = '괜찮아요, 학습지의 지도와 특징을 다시 확인한 뒤 재도전해 보세요.';
+  document.getElementById('scoreMsg').textContent = msg;
+
+  const board = document.getElementById('stampBoard');
+  board.innerHTML = '';
+  QUESTIONS.forEach((q, i) => {
+    const s = document.createElement('div');
+    const pass = results[i];
+    s.className = 'stamp ' + (pass ? 'pass' : 'fail');
+    s.style.setProperty('--rot', `${(i % 2 === 0 ? -1 : 1) * (6 + i * 2)}deg`);
+    s.innerHTML = `${q.highlight} 문화권<span class="mark">${pass ? 'FOUND' : 'RETRY'}</span>`;
+    board.appendChild(s);
+  });
+}
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  current = 0; score = 0; results = [];
+  quizArea.style.display = 'block';
+  resultArea.classList.remove('show');
+  initStampsRow();
+  renderQuestion();
+});
+
+initStampsRow();
+renderQuestion();
+</script>
+
+</body>
+</html>
